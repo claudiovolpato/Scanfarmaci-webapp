@@ -15,7 +15,7 @@
   </style>
 </head>
 <body>
-  <h2>ScanFarmaci 3</h2>
+  <h2>ScanFarmaci</h2>
   <button onclick="startSingleScan()">Scansiona articolo</button>
   <button onclick="clearData()">Cancella dati</button>
   <video id="preview" autoplay muted></video>
@@ -33,52 +33,46 @@
     const counter = document.getElementById('counter');
     const cancelBtn = document.getElementById('cancelScan');
     let dati = [['Codice', 'Quantità']];
-    let scanTimeout;
+    let isScanning = false;
 
     function updateCounter() {
       counter.innerText = `Articoli scansionati: ${dati.length - 1}`;
     }
 
     function startSingleScan() {
+      if (isScanning) return;
+      isScanning = true;
       videoElement.style.display = 'block';
       cancelBtn.style.display = 'inline-block';
       status.innerText = 'Posiziona il codice a barre davanti alla fotocamera...';
-      scanTimeout = setTimeout(() => {
-        cancelScan();
-        status.innerText = 'Tempo scaduto. Nessun codice rilevato.';
-      }, 15000);
 
-      codeReader.decodeOnceFromVideoDevice(undefined, 'preview').then(result => {
-        clearTimeout(scanTimeout);
-        beep();
-        vibra();
-        status.innerText = 'Codice rilevato!';
-        const codice = result.text;
-        const quantita = prompt(`Inserisci la quantità per ${codice}`);
-        if (quantita !== null) {
-          dati.push([codice, parseInt(quantita)]);
-          output.innerHTML += `<p>${codice} - ${quantita} scatole</p>`;
-          updateCounter();
+      codeReader.decodeFromVideoDevice(undefined, 'preview', (result, err) => {
+        if (result) {
+          codeReader.reset();
+          beep();
+          vibra();
+          status.innerText = 'Codice rilevato!';
+          const codice = result.text;
+          const quantita = prompt(`Inserisci la quantità per ${codice}`);
+          if (quantita !== null) {
+            dati.push([codice, parseInt(quantita)]);
+            output.innerHTML += `<p>${codice} - ${quantita} scatole</p>`;
+            updateCounter();
+          }
+          videoElement.style.display = 'none';
+          cancelBtn.style.display = 'none';
+          status.innerText = '';
+          isScanning = false;
         }
-        codeReader.reset();
-        videoElement.style.display = 'none';
-        cancelBtn.style.display = 'none';
-        status.innerText = '';
-      }).catch(err => {
-        clearTimeout(scanTimeout);
-        console.error(err);
-        status.innerText = 'Errore nella scansione. Riprova.';
-        videoElement.style.display = 'none';
-        cancelBtn.style.display = 'none';
       });
     }
 
     function cancelScan() {
-      clearTimeout(scanTimeout);
       codeReader.reset();
       videoElement.style.display = 'none';
       cancelBtn.style.display = 'none';
       status.innerText = 'Scansione annullata.';
+      isScanning = false;
     }
 
     function beep() {
