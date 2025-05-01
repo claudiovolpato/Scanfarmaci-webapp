@@ -67,8 +67,8 @@
             if (barcodes.length > 0) {
               const codice = barcodes[0].rawValue;
               stopScan();
-              beep();
-              vibra();
+              //beep();
+              //vibra();
               const quantita = prompt(`Inserisci la quantità per ${codice}`);
               if (quantita !== null) {
                 dati.push([codice, parseInt(quantita)]);
