@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ScanFarmaci WebApp</title>
+  <title>ScanFarmaci WebApp (alta risoluzione)</title>
   <script src="https://unpkg.com/@zxing/library@latest"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     body { font-family: sans-serif; padding: 1em; text-align: center; }
-    #preview { width: 100%; max-width: 400px; display: none; margin: auto; }
+    #preview { width: 100%; max-width: 640px; display: none; margin: auto; }
     button { margin: 0.5em; padding: 0.5em 1em; font-size: 16px; }
     #status, #counter { margin-top: 1em; font-weight: bold; color: #333; }
     #cancelScan { display: none; background-color: #f44336; color: white; }
@@ -18,7 +18,7 @@
   <h2>ScanFarmaci</h2>
   <button onclick="startSingleScan()">Scansiona articolo</button>
   <button onclick="clearData()">Cancella dati</button>
-  <video id="preview" autoplay muted></video>
+  <video id="preview" autoplay muted playsinline></video>
   <button id="cancelScan" onclick="cancelScan()">Annulla scansione</button>
   <div id="status"></div>
   <div id="counter">Articoli scansionati: 0</div>
@@ -34,21 +34,35 @@
     const cancelBtn = document.getElementById('cancelScan');
     let dati = [['Codice', 'Quantità']];
     let isScanning = false;
+    let currentStream = null;
 
     function updateCounter() {
       counter.innerText = `Articoli scansionati: ${dati.length - 1}`;
     }
 
-    function startSingleScan() {
+    async function startSingleScan() {
       if (isScanning) return;
       isScanning = true;
       videoElement.style.display = 'block';
       cancelBtn.style.display = 'inline-block';
-      status.innerText = 'Posiziona il codice a barre davanti alla fotocamera...';
+      status.innerText = 'Attivazione fotocamera...';
 
-      codeReader.decodeFromVideoDevice(undefined, 'preview', (result, err) => {
-        if (result) {
-          codeReader.reset();
+      try {
+        const constraints = {
+          video: {
+            facingMode: { exact: 'environment' },
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          }
+        };
+
+        currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+        videoElement.srcObject = currentStream;
+        await videoElement.play();
+        status.innerText = 'Posiziona il codice a barre davanti alla fotocamera...';
+
+        codeReader.decodeFromVideoElement(videoElement).then(result => {
+          stopScan();
           beep();
           vibra();
           status.innerText = 'Codice rilevato!';
@@ -59,20 +73,32 @@
             output.innerHTML += `<p>${codice} - ${quantita} scatole</p>`;
             updateCounter();
           }
-          videoElement.style.display = 'none';
-          cancelBtn.style.display = 'none';
-          status.innerText = '';
-          isScanning = false;
-        }
-      });
+        }).catch(err => {
+          console.error(err);
+          status.innerText = 'Errore nella scansione.';
+          stopScan();
+        });
+
+      } catch (err) {
+        console.error('Errore accesso fotocamera:', err);
+        status.innerText = 'Accesso alla fotocamera negato o non disponibile.';
+        isScanning = false;
+      }
+    }
+
+    function stopScan() {
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+        currentStream = null;
+      }
+      videoElement.style.display = 'none';
+      cancelBtn.style.display = 'none';
+      isScanning = false;
     }
 
     function cancelScan() {
-      codeReader.reset();
-      videoElement.style.display = 'none';
-      cancelBtn.style.display = 'none';
       status.innerText = 'Scansione annullata.';
-      isScanning = false;
+      stopScan();
     }
 
     function beep() {
