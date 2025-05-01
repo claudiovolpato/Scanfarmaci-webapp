@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ScanFarmaci WebApp (alta risoluzione)</title>
-  <script src="https://unpkg.com/@zxing/library@latest"></script>
+  <title>ScanFarmaci WebApp (BarcodeDetector)</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     body { font-family: sans-serif; padding: 1em; text-align: center; }
@@ -15,8 +14,8 @@
   </style>
 </head>
 <body>
-  <h2>ScanFarmaci 1</h2>
-  <button onclick="startSingleScan()">Scansiona articolo</button>
+  <h2>ScanFarmaci</h2>
+  <button onclick="startScan()">Scansiona articolo</button>
   <button onclick="clearData()">Cancella dati</button>
   <video id="preview" autoplay muted playsinline></video>
   <button id="cancelScan" onclick="cancelScan()">Annulla scansione</button>
@@ -26,79 +25,87 @@
   <button onclick="downloadExcel()">Scarica Excel</button>
 
   <script>
-    const codeReader = new ZXing.BrowserMultiFormatReader();
     const videoElement = document.getElementById('preview');
     const output = document.getElementById('output');
     const status = document.getElementById('status');
     const counter = document.getElementById('counter');
     const cancelBtn = document.getElementById('cancelScan');
     let dati = [['Codice', 'Quantità']];
-    let isScanning = false;
-    let currentStream = null;
+    let stream = null;
+    let scanning = false;
+    let barcodeInterval;
 
-    function updateCounter() {
-      counter.innerText = `Articoli scansionati: ${dati.length - 1}`;
-    }
+    async function startScan() {
+      if (!('BarcodeDetector' in window)) {
+        alert("Il tuo browser non supporta BarcodeDetector. Usa Chrome su Android o Desktop.");
+        return;
+      }
 
-    async function startSingleScan() {
-      if (isScanning) return;
-      isScanning = true;
-      videoElement.style.display = 'block';
-      cancelBtn.style.display = 'inline-block';
-      status.innerText = 'Attivazione fotocamera...';
+      const supportedFormats = await BarcodeDetector.getSupportedFormats();
+      const detector = new BarcodeDetector({ formats: supportedFormats });
 
       try {
-        const constraints = {
+        stream = await navigator.mediaDevices.getUserMedia({
           video: {
-            facingMode: { exact: 'environment' },
+            facingMode: 'environment',
             width: { ideal: 1280 },
             height: { ideal: 720 }
           }
-        };
-
-        currentStream = await navigator.mediaDevices.getUserMedia(constraints);
-        videoElement.srcObject = currentStream;
-        await videoElement.play();
-        status.innerText = 'Posiziona il codice a barre davanti alla fotocamera...';
-
-        codeReader.decodeFromVideoElement(videoElement).then(result => {
-          stopScan();
-          beep();
-          vibra();
-          status.innerText = 'Codice rilevato!';
-          const codice = result.text;
-          const quantita = prompt(`Inserisci la quantità per ${codice}`);
-          if (quantita !== null) {
-            dati.push([codice, parseInt(quantita)]);
-            output.innerHTML += `<p>${codice} - ${quantita} scatole</p>`;
-            updateCounter();
-          }
-        }).catch(err => {
-          console.error(err);
-          status.innerText = 'Errore nella scansione.';
-          stopScan();
         });
 
+        videoElement.srcObject = stream;
+        await videoElement.play();
+        videoElement.style.display = 'block';
+        cancelBtn.style.display = 'inline-block';
+        status.innerText = 'Posiziona il codice a barre davanti alla fotocamera...';
+        scanning = true;
+
+        barcodeInterval = setInterval(async () => {
+          if (!scanning) return;
+          try {
+            const barcodes = await detector.detect(videoElement);
+            if (barcodes.length > 0) {
+              const codice = barcodes[0].rawValue;
+              stopScan();
+              beep();
+              vibra();
+              const quantita = prompt(`Inserisci la quantità per ${codice}`);
+              if (quantita !== null) {
+                dati.push([codice, parseInt(quantita)]);
+                output.innerHTML += `<p>${codice} - ${quantita} scatole</p>`;
+                updateCounter();
+              }
+            }
+          } catch (e) {
+            console.error('Errore nel rilevamento:', e);
+          }
+        }, 500);
+
       } catch (err) {
-        console.error('Errore accesso fotocamera:', err);
-        status.innerText = 'Accesso alla fotocamera negato o non disponibile.';
-        isScanning = false;
+        console.error("Errore fotocamera:", err);
+        status.innerText = 'Impossibile accedere alla fotocamera.';
       }
     }
 
     function stopScan() {
-      if (currentStream) {
-        currentStream.getTracks().forEach(track => track.stop());
-        currentStream = null;
+      scanning = false;
+      clearInterval(barcodeInterval);
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
       }
       videoElement.style.display = 'none';
       cancelBtn.style.display = 'none';
-      isScanning = false;
+      status.innerText = '';
     }
 
     function cancelScan() {
-      status.innerText = 'Scansione annullata.';
       stopScan();
+      status.innerText = 'Scansione annullata.';
+    }
+
+    function updateCounter() {
+      counter.innerText = `Articoli scansionati: ${dati.length - 1}`;
     }
 
     function beep() {
