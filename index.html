@@ -25,6 +25,14 @@
       display: none;
       box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     }
+    #zoomControl {
+      display: none;
+      margin-bottom: 1em;
+    }
+    input[type=range] {
+      width: 100%;
+      max-width: 300px;
+    }
     button {
       margin: 0.5em;
       padding: 0.75em 1.5em;
@@ -70,6 +78,10 @@
   <button onclick="startScan()">Scansiona articolo</button>
   <button onclick="clearData()">Cancella dati</button>
   <video id="preview" autoplay muted playsinline></video>
+  <div id="zoomControl">
+    <label for="zoom">Zoom:</label>
+    <input type="range" id="zoom" min="1" max="5" step="0.1" value="1">
+  </div>
   <button id="cancelScan" onclick="cancelScan()">Annulla scansione</button>
   <div id="status"></div>
   <div id="counter">Articoli scansionati: 0</div>
@@ -82,10 +94,13 @@
     const status = document.getElementById('status');
     const counter = document.getElementById('counter');
     const cancelBtn = document.getElementById('cancelScan');
+    const zoomSlider = document.getElementById('zoom');
+    const zoomControl = document.getElementById('zoomControl');
     let dati = [['Codice', 'Quantità']];
     let stream = null;
     let scanning = false;
     let barcodeInterval;
+    let videoTrack;
 
     window.onload = () => {
       const saved = localStorage.getItem('datiScanFarmaci');
@@ -126,6 +141,19 @@
         status.innerText = 'Posiziona il codice a barre davanti alla fotocamera...';
         scanning = true;
 
+        videoTrack = stream.getVideoTracks()[0];
+        const capabilities = videoTrack.getCapabilities();
+        if (capabilities.zoom) {
+          zoomSlider.min = capabilities.zoom.min;
+          zoomSlider.max = capabilities.zoom.max;
+          zoomSlider.step = capabilities.zoom.step || 0.1;
+          zoomSlider.value = capabilities.zoom.min;
+          zoomControl.style.display = 'block';
+          zoomSlider.oninput = () => {
+            videoTrack.applyConstraints({ advanced: [{ zoom: parseFloat(zoomSlider.value) }] });
+          };
+        }
+
         barcodeInterval = setInterval(async () => {
           if (!scanning) return;
           try {
@@ -162,6 +190,7 @@
       }
       videoElement.style.display = 'none';
       cancelBtn.style.display = 'none';
+      zoomControl.style.display = 'none';
       status.innerText = '';
     }
 
