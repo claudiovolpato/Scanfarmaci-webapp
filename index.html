@@ -7,16 +7,21 @@
   <script src="https://unpkg.com/@zxing/library@latest"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
-    body { font-family: sans-serif; padding: 1em; }
-    #preview { width: 100%; max-width: 400px; display: none; }
-    button { margin-top: 1em; padding: 0.5em 1em; font-size: 16px; }
+    body { font-family: sans-serif; padding: 1em; text-align: center; }
+    #preview { width: 100%; max-width: 400px; display: none; margin: auto; }
+    button { margin: 0.5em; padding: 0.5em 1em; font-size: 16px; }
+    #status, #counter { margin-top: 1em; font-weight: bold; color: #333; }
+    #cancelScan { display: none; background-color: #f44336; color: white; }
   </style>
 </head>
 <body>
   <h2>ScanFarmaci</h2>
   <button onclick="startSingleScan()">Scansiona articolo</button>
   <button onclick="clearData()">Cancella dati</button>
-  <video id="preview"></video>
+  <video id="preview" autoplay muted></video>
+  <button id="cancelScan" onclick="cancelScan()">Annulla scansione</button>
+  <div id="status"></div>
+  <div id="counter">Articoli scansionati: 0</div>
   <div id="output"></div>
   <button onclick="downloadExcel()">Scarica Excel</button>
 
@@ -24,23 +29,72 @@
     const codeReader = new ZXing.BrowserMultiFormatReader();
     const videoElement = document.getElementById('preview');
     const output = document.getElementById('output');
+    const status = document.getElementById('status');
+    const counter = document.getElementById('counter');
+    const cancelBtn = document.getElementById('cancelScan');
     let dati = [['Codice', 'Quantità']];
+    let scanTimeout;
+
+    function updateCounter() {
+      counter.innerText = `Articoli scansionati: ${dati.length - 1}`;
+    }
 
     function startSingleScan() {
       videoElement.style.display = 'block';
+      cancelBtn.style.display = 'inline-block';
+      status.innerText = 'Posiziona il codice a barre davanti alla fotocamera...';
+      scanTimeout = setTimeout(() => {
+        cancelScan();
+        status.innerText = 'Tempo scaduto. Nessun codice rilevato.';
+      }, 15000);
+
       codeReader.decodeOnceFromVideoDevice(undefined, 'preview').then(result => {
+        clearTimeout(scanTimeout);
+        beep();
+        vibra();
+        status.innerText = 'Codice rilevato!';
         const codice = result.text;
         const quantita = prompt(`Inserisci la quantità per ${codice}`);
         if (quantita !== null) {
           dati.push([codice, parseInt(quantita)]);
           output.innerHTML += `<p>${codice} - ${quantita} scatole</p>`;
+          updateCounter();
         }
         codeReader.reset();
         videoElement.style.display = 'none';
+        cancelBtn.style.display = 'none';
+        status.innerText = '';
       }).catch(err => {
+        clearTimeout(scanTimeout);
         console.error(err);
+        status.innerText = 'Errore nella scansione. Riprova.';
         videoElement.style.display = 'none';
+        cancelBtn.style.display = 'none';
       });
+    }
+
+    function cancelScan() {
+      clearTimeout(scanTimeout);
+      codeReader.reset();
+      videoElement.style.display = 'none';
+      cancelBtn.style.display = 'none';
+      status.innerText = 'Scansione annullata.';
+    }
+
+    function beep() {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = ctx.createOscillator();
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(1000, ctx.currentTime);
+      oscillator.connect(ctx.destination);
+      oscillator.start();
+      setTimeout(() => oscillator.stop(), 100);
+    }
+
+    function vibra() {
+      if (navigator.vibrate) {
+        navigator.vibrate(100);
+      }
     }
 
     function downloadExcel() {
@@ -54,6 +108,7 @@
       if (confirm("Sei sicuro di voler cancellare tutti i dati?")) {
         dati = [['Codice', 'Quantità']];
         output.innerHTML = '';
+        updateCounter();
         alert("Dati cancellati.");
       }
     }
