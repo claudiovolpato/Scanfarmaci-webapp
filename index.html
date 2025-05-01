@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ScanFarmaci WebApp</title>
+  <script src="https://unpkg.com/@zxing/library@latest"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 1em; }
+    #preview { width: 100%; max-width: 400px; }
+    button { margin-top: 1em; padding: 0.5em 1em; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <h2>ScanFarmaci</h2>
+  <video id="preview" autoplay></video>
+  <div id="output"></div>
+  <button onclick="downloadExcel()">Scarica Excel</button>
+
+  <script>
+    const codeReader = new ZXing.BrowserMultiFormatReader();
+    const videoElement = document.getElementById('preview');
+    const output = document.getElementById('output');
+    const dati = [['Codice', 'Quantità']];
+
+    codeReader.decodeFromVideoDevice(null, 'preview', (result, err) => {
+      if (result) {
+        codeReader.reset();
+        const codice = result.text;
+        const quantita = prompt(`Inserisci la quantità per ${codice}`);
+        if (quantita !== null) {
+          dati.push([codice, parseInt(quantita)]);
+          output.innerHTML += `<p>${codice} - ${quantita} scatole</p>`;
+        }
+        setTimeout(() => avviaScanner(), 500);
+      }
+    });
+
+    function avviaScanner() {
+      codeReader.reset();
+      codeReader.decodeFromVideoDevice(null, 'preview', () => {});
+    }
+
+    function downloadExcel() {
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(dati);
+      XLSX.utils.book_append_sheet(wb, ws, 'Medicinali');
+      XLSX.writeFile(wb, 'medicinali.xlsx');
+    }
+
+    avviaScanner();
+  </script>
+</body>
+</html>
