@@ -1,20 +1,22 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ScanFarmaci WebApp</title>
   <script src="https://unpkg.com/@zxing/library@latest"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     body { font-family: sans-serif; padding: 1em; }
-    #preview { width: 100%; max-width: 400px; }
+    #preview { width: 100%; max-width: 400px; display: none; }
     button { margin-top: 1em; padding: 0.5em 1em; font-size: 16px; }
   </style>
 </head>
 <body>
   <h2>ScanFarmaci</h2>
-  <video id="preview" autoplay></video>
+  <button onclick="startSingleScan()">Scansiona articolo</button>
+  <button onclick="clearData()">Cancella dati</button>
+  <video id="preview"></video>
   <div id="output"></div>
   <button onclick="downloadExcel()">Scarica Excel</button>
 
@@ -22,24 +24,23 @@
     const codeReader = new ZXing.BrowserMultiFormatReader();
     const videoElement = document.getElementById('preview');
     const output = document.getElementById('output');
-    const dati = [['Codice', 'Quantità']];
+    let dati = [['Codice', 'Quantità']];
 
-    codeReader.decodeFromVideoDevice(null, 'preview', (result, err) => {
-      if (result) {
-        codeReader.reset();
+    function startSingleScan() {
+      videoElement.style.display = 'block';
+      codeReader.decodeOnceFromVideoDevice(undefined, 'preview').then(result => {
         const codice = result.text;
         const quantita = prompt(`Inserisci la quantità per ${codice}`);
         if (quantita !== null) {
           dati.push([codice, parseInt(quantita)]);
           output.innerHTML += `<p>${codice} - ${quantita} scatole</p>`;
         }
-        setTimeout(() => avviaScanner(), 500);
-      }
-    });
-
-    function avviaScanner() {
-      codeReader.reset();
-      codeReader.decodeFromVideoDevice(null, 'preview', () => {});
+        codeReader.reset();
+        videoElement.style.display = 'none';
+      }).catch(err => {
+        console.error(err);
+        videoElement.style.display = 'none';
+      });
     }
 
     function downloadExcel() {
@@ -49,7 +50,13 @@
       XLSX.writeFile(wb, 'medicinali.xlsx');
     }
 
-    avviaScanner();
+    function clearData() {
+      if (confirm("Sei sicuro di voler cancellare tutti i dati?")) {
+        dati = [['Codice', 'Quantità']];
+        output.innerHTML = '';
+        alert("Dati cancellati.");
+      }
+    }
   </script>
 </body>
 </html>
