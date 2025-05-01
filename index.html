@@ -74,7 +74,7 @@
   </style>
 </head>
 <body>
-  <h2>ScanFarmaci 2</h2>
+  <h2>ScanFarmaci 3</h2>
   <button onclick="startScan()">Scansiona articolo</button>
   <button onclick="clearData()">Cancella dati</button>
   <video id="preview" autoplay muted playsinline></video>
@@ -127,8 +127,8 @@
 
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            exatc: 'environment',
+          facingMode: {
+            exact: 'environment',
             width: { exact: 1920 },
             height: { exact: 1080 }
           }
