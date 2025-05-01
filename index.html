@@ -3,14 +3,66 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ScanFarmaci WebApp (BarcodeDetector)</title>
+  <title>ScanFarmaci WebApp</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
-    body { font-family: sans-serif; padding: 1em; text-align: center; }
-    #preview { width: 100%; max-width: 640px; display: none; margin: auto; }
-    button { margin: 0.5em; padding: 0.5em 1em; font-size: 16px; }
-    #status, #counter { margin-top: 1em; font-weight: bold; color: #333; }
-    #cancelScan { display: none; background-color: #f44336; color: white; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f4f6f8;
+      margin: 0;
+      padding: 2em;
+      text-align: center;
+      color: #333;
+    }
+    h2 {
+      color: #0077cc;
+    }
+    video {
+      width: 100%;
+      max-width: 640px;
+      border-radius: 12px;
+      margin: 1em 0;
+      display: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    button {
+      margin: 0.5em;
+      padding: 0.75em 1.5em;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background-color: #0077cc;
+      color: white;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #005fa3;
+    }
+    #cancelScan {
+      background-color: #d9534f;
+    }
+    #cancelScan:hover {
+      background-color: #c9302c;
+    }
+    #status, #counter {
+      margin-top: 1em;
+      font-weight: bold;
+    }
+    #output {
+      margin-top: 1em;
+      text-align: left;
+      max-width: 640px;
+      margin-left: auto;
+      margin-right: auto;
+      background: white;
+      padding: 1em;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    #output p {
+      margin: 0.25em 0;
+    }
   </style>
 </head>
 <body>
@@ -67,8 +119,7 @@
             if (barcodes.length > 0) {
               const codice = barcodes[0].rawValue;
               stopScan();
-              //beep();
-              //vibra();
+              vibra();
               const quantita = prompt(`Inserisci la quantità per ${codice}`);
               if (quantita !== null) {
                 dati.push([codice, parseInt(quantita)]);
@@ -106,16 +157,6 @@
 
     function updateCounter() {
       counter.innerText = `Articoli scansionati: ${dati.length - 1}`;
-    }
-
-    function beep() {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const oscillator = ctx.createOscillator();
-      oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(1000, ctx.currentTime);
-      oscillator.connect(ctx.destination);
-      oscillator.start();
-      setTimeout(() => oscillator.stop(), 100);
     }
 
     function vibra() {
