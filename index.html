@@ -87,6 +87,20 @@
     let scanning = false;
     let barcodeInterval;
 
+    window.onload = () => {
+      const saved = localStorage.getItem('datiScanFarmaci');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            dati = parsed;
+            updateOutput();
+            updateCounter();
+          }
+        } catch {}
+      }
+    };
+
     async function startScan() {
       if (!('BarcodeDetector' in window)) {
         alert("Il tuo browser non supporta BarcodeDetector. Usa Chrome su Android o Desktop.");
@@ -123,8 +137,9 @@
               const quantita = prompt(`Inserisci la quantità per ${codice}`);
               if (quantita !== null) {
                 dati.push([codice, parseInt(quantita)]);
-                output.innerHTML += `<p>${codice} - ${quantita} scatole</p>`;
+                updateOutput();
                 updateCounter();
+                saveData();
               }
             }
           } catch (e) {
@@ -159,6 +174,17 @@
       counter.innerText = `Articoli scansionati: ${dati.length - 1}`;
     }
 
+    function updateOutput() {
+      output.innerHTML = '';
+      for (let i = 1; i < dati.length; i++) {
+        output.innerHTML += `<p>${dati[i][0]} - ${dati[i][1]} scatole</p>`;
+      }
+    }
+
+    function saveData() {
+      localStorage.setItem('datiScanFarmaci', JSON.stringify(dati));
+    }
+
     function vibra() {
       if (navigator.vibrate) {
         navigator.vibrate(100);
@@ -177,6 +203,7 @@
         dati = [['Codice', 'Quantità']];
         output.innerHTML = '';
         updateCounter();
+        localStorage.removeItem('datiScanFarmaci');
         alert("Dati cancellati.");
       }
     }
