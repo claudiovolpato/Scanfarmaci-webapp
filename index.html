@@ -6,117 +6,20 @@
   <title>ScanFarmaci WebApp</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background-color: #f4f6f8;
-      margin: 0;
-      padding: 2em;
-      text-align: center;
-      color: #333;
-    }
-    h2 {
-      color: #0077cc;
-    }
-    video {
-      width: 100%;
-      max-width: 640px;
-      border-radius: 12px;
-      margin: 1em 0;
-      display: none;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    }
-    #zoomControl {
-      display: none;
-      margin-bottom: 1em;
-    }
-    input[type=range] {
-      width: 100%;
-      max-width: 300px;
-    }
-    button {
-      margin: 0.5em;
-      padding: 0.75em 1.5em;
-      font-size: 16px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      background-color: #0077cc;
-      color: white;
-      transition: background-color 0.3s;
-    }
-    button:hover {
-      background-color: #005fa3;
-    }
-    #cancelScan {
-      background-color: #d9534f;
-    }
-    #cancelScan:hover {
-      background-color: #c9302c;
-    }
-    #status, #counter {
-      margin-top: 1em;
-      font-weight: bold;
-    }
-    #output {
-      margin-top: 1em;
-      text-align: left;
-      max-width: 640px;
-      margin-left: auto;
-      margin-right: auto;
-      background: white;
-      padding: 1em;
-      border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
-    #output p {
-      margin: 0.25em 0;
-    }
-    #modalOverlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(0, 0, 0, 0.4);
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-    }
-    #quantityPrompt {
-      background: #fff;
-      padding: 1em;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.2);
-      max-width: 320px;
-      text-align: center;
-      margin: auto;
-    }
-    #quantityPrompt input[type="number"],
-    #quantityPrompt input[type="text"] {
-      font-size: 16px;
-      margin: 0.5em 0;
-    }
-    #quantityPrompt input[type="number"] {
-      width: 60px;
-    }
-    #quantityPrompt input[type="text"] {
-      width: 90%;
-    }
+    body { font-family: sans-serif; background: #f8f8f8; padding: 2em; text-align: center; }
+    video { width: 100%; max-width: 640px; display: none; border-radius: 12px; margin: 1em 0; }
+    button { margin: 0.5em; padding: 0.75em 1.5em; border: none; border-radius: 8px; background: #0077cc; color: white; font-size: 16px; }
+    #output { margin-top: 1em; text-align: left; max-width: 640px; margin: 1em auto; background: white; padding: 1em; border-radius: 8px; }
+    #modalOverlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+    #quantityPrompt { background: white; padding: 1em; border-radius: 10px; text-align: center; max-width: 300px; }
+    input[type="number"], input[type="text"] { margin: 0.5em; padding: 0.5em; font-size: 16px; width: 80%; }
   </style>
 </head>
 <body>
   <h2>ScanFarmaci</h2>
   <button onclick="startScan()">Scansiona articolo</button>
-  <button onclick="clearData()">Cancella dati</button>
+  <button onclick="clearData()">Cancella quantità</button>
   <video id="preview" autoplay muted playsinline></video>
-  <div id="zoomControl">
-    <label for="zoom">Zoom:</label>
-    <input type="range" id="zoom" min="1" max="5" step="0.1" value="1">
-  </div>
-  <button id="cancelScan" onclick="cancelScan()">Annulla scansione</button>
-  <div id="status"></div>
-  <div id="counter">Articoli scansionati: 0</div>
   <div id="output"></div>
   <button onclick="downloadExcel()">Scarica Excel</button>
 
@@ -124,105 +27,52 @@
     <div id="quantityPrompt">
       <p id="promptCodice"></p>
       <input type="text" id="inputDescrizione" placeholder="Descrizione">
-      <div>
-        <button onclick="modificaQuantita(-1)">−</button>
-        <input type="number" id="inputQuantita" value="1" min="1">
-        <button onclick="modificaQuantita(1)">+</button>
-      </div>
-      <div style="margin-top: 1em;">
-        <button onclick="confermaQuantita()">Conferma</button>
-        <button onclick="annullaQuantita()">Annulla</button>
-      </div>
+      <br>
+      <input type="number" id="inputQuantita" value="1" min="1">
+      <br>
+      <button onclick="confermaQuantita()">Conferma</button>
+      <button onclick="annullaQuantita()">Annulla</button>
     </div>
   </div>
 
   <script>
     const videoElement = document.getElementById('preview');
     const output = document.getElementById('output');
-    const status = document.getElementById('status');
-    const counter = document.getElementById('counter');
-    const cancelBtn = document.getElementById('cancelScan');
-    const zoomSlider = document.getElementById('zoom');
-    const zoomControl = document.getElementById('zoomControl');
-    const modalOverlay = document.getElementById('modalOverlay');
-    const quantityPrompt = document.getElementById('quantityPrompt');
     const inputQuantita = document.getElementById('inputQuantita');
     const inputDescrizione = document.getElementById('inputDescrizione');
+    const modalOverlay = document.getElementById('modalOverlay');
     const promptCodice = document.getElementById('promptCodice');
 
     let dati = [['Codice', 'Descrizione', 'Quantità']];
     let descrizioni = {};
-    let stream = null;
-    let scanning = false;
-    let barcodeInterval;
-    let videoTrack;
     let codiceCorrente = "";
 
     window.onload = () => {
-      const saved = localStorage.getItem('datiScanFarmaci');
-      const savedDesc = localStorage.getItem('descrizioniScanFarmaci');
-      if (saved) dati = JSON.parse(saved);
-      if (savedDesc) descrizioni = JSON.parse(savedDesc);
+      const d = localStorage.getItem('datiScanFarmaci');
+      const desc = localStorage.getItem('descrizioniScanFarmaci');
+      if (d) dati = JSON.parse(d);
+      if (desc) descrizioni = JSON.parse(desc);
       updateOutput();
-      updateCounter();
     };
 
     async function startScan() {
-      if (!('BarcodeDetector' in window)) {
-        alert("Il tuo browser non supporta BarcodeDetector.");
-        return;
-      }
-
+      if (!('BarcodeDetector' in window)) return alert('BarcodeDetector non supportato.');
       const detector = new BarcodeDetector();
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } });
-        videoElement.srcObject = stream;
-        await videoElement.play();
-        videoElement.style.display = 'block';
-        cancelBtn.style.display = 'inline-block';
-        status.innerText = 'Posiziona il codice a barre davanti alla fotocamera...';
-        scanning = true;
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      videoElement.srcObject = stream;
+      await videoElement.play();
+      videoElement.style.display = 'block';
 
-        videoTrack = stream.getVideoTracks()[0];
-        const capabilities = videoTrack.getCapabilities();
-        if (capabilities.zoom) {
-          zoomSlider.min = capabilities.zoom.min;
-          zoomSlider.max = capabilities.zoom.max;
-          zoomSlider.step = capabilities.zoom.step || 0.1;
-          zoomSlider.value = capabilities.zoom.min;
-          zoomControl.style.display = 'block';
-          zoomSlider.oninput = () => {
-            videoTrack.applyConstraints({ advanced: [{ zoom: parseFloat(zoomSlider.value) }] });
-          };
+      const interval = setInterval(async () => {
+        const barcodes = await detector.detect(videoElement);
+        if (barcodes.length > 0) {
+          codiceCorrente = barcodes[0].rawValue;
+          stream.getTracks().forEach(track => track.stop());
+          videoElement.style.display = 'none';
+          mostraPromptQuantita(codiceCorrente);
+          clearInterval(interval);
         }
-
-        barcodeInterval = setInterval(async () => {
-          if (!scanning) return;
-          const barcodes = await detector.detect(videoElement);
-          if (barcodes.length > 0) {
-            codiceCorrente = barcodes[0].rawValue;
-            stopScan();
-            vibra();
-            mostraPromptQuantita(codiceCorrente);
-          }
-        }, 500);
-      } catch (err) {
-        status.innerText = 'Errore accesso fotocamera.';
-        console.error(err);
-      }
-    }
-
-    function stopScan() {
-      scanning = false;
-      clearInterval(barcodeInterval);
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-        stream = null;
-      }
-      videoElement.style.display = 'none';
-      cancelBtn.style.display = 'none';
-      zoomControl.style.display = 'none';
-      status.innerText = '';
+      }, 500);
     }
 
     function mostraPromptQuantita(codice) {
@@ -233,29 +83,19 @@
     }
 
     function confermaQuantita() {
-      const quantita = parseInt(inputQuantita.value);
-      const descrizione = inputDescrizione.value.trim();
-      if (!isNaN(quantita) && quantita > 0) {
-        dati.push([codiceCorrente, descrizione, quantita]);
-        descrizioni[codiceCorrente] = descrizione;
-        updateOutput();
-        updateCounter();
+      const q = parseInt(inputQuantita.value);
+      const d = inputDescrizione.value.trim();
+      if (!isNaN(q) && d !== "") {
+        dati.push([codiceCorrente, d, q]);
+        descrizioni[codiceCorrente] = d;
         saveData();
+        updateOutput();
         modalOverlay.style.display = 'none';
       }
     }
 
     function annullaQuantita() {
       modalOverlay.style.display = 'none';
-    }
-
-    function modificaQuantita(delta) {
-      let q = parseInt(inputQuantita.value) || 1;
-      inputQuantita.value = Math.max(1, q + delta);
-    }
-
-    function vibra() {
-      if (navigator.vibrate) navigator.vibrate(100);
     }
 
     function updateOutput() {
@@ -265,13 +105,17 @@
       }
     }
 
-    function updateCounter() {
-      counter.innerText = `Articoli scansionati: ${dati.length - 1}`;
-    }
-
     function saveData() {
       localStorage.setItem('datiScanFarmaci', JSON.stringify(dati));
       localStorage.setItem('descrizioniScanFarmaci', JSON.stringify(descrizioni));
+    }
+
+    function clearData() {
+      if (confirm("Cancellare tutte le quantità?")) {
+        dati = [['Codice', 'Descrizione', 'Quantità']];
+        saveData();
+        updateOutput();
+      }
     }
 
     function downloadExcel() {
@@ -279,17 +123,6 @@
       const ws = XLSX.utils.aoa_to_sheet(dati);
       XLSX.utils.book_append_sheet(wb, ws, 'Medicinali');
       XLSX.writeFile(wb, 'medicinali.xlsx');
-    }
-
-    function clearData() {
-      if (confirm("Sei sicuro di voler cancellare tutti i dati?")) {
-        dati = [['Codice', 'Descrizione', 'Quantità']];
-        descrizioni = {};
-        updateOutput();
-        updateCounter();
-        localStorage.removeItem('datiScanFarmaci');
-        localStorage.removeItem('descrizioniScanFarmaci');
-      }
     }
   </script>
 </body>
