@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ScanFarmaci WebApp</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
-    body { font-family: sans-serif; background: #f4f6f8; text-align: center; padding: 2em; }
-    video { display: none; width: 100%; max-width: 640px; border-radius: 12px; }
-    button { margin: 0.5em; padding: 0.75em 1.5em; border: none; border-radius: 8px; background: #0077cc; color: white; font-size: 16px; }
-    #output { margin-top: 1em; text-align: left; max-width: 640px; margin-left: auto; margin-right: auto; background: white; padding: 1em; border-radius: 8px; }
+    body { font-family: sans-serif; background: #f4f6f8; padding: 2em; text-align: center; }
+    video { width: 100%; max-width: 640px; display: none; border-radius: 12px; }
+    button { margin: 0.5em; padding: 0.75em 1.5em; font-size: 16px; border: none; border-radius: 8px; background: #0077cc; color: white; }
+    #output { margin-top: 1em; text-align: left; max-width: 640px; margin: auto; background: white; padding: 1em; border-radius: 8px; }
     #modalOverlay {
       display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
       background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 9999;
@@ -39,7 +39,7 @@
       <input type="text" id="inputDescrizione" placeholder="Descrizione">
       <div class="qty-controls">
         <button onclick="modificaQuantita(-1)">−</button>
-        <input type="number" id="inputQuantita" value="1" min="1" />
+        <input type="number" id="inputQuantita" value="1" min="1">
         <button onclick="modificaQuantita(1)">+</button>
       </div>
       <div style="margin-top: 1em;">
@@ -57,7 +57,7 @@
     const inputDescrizione = document.getElementById('inputDescrizione');
     const inputQuantita = document.getElementById('inputQuantita');
 
-    let dati = [['Codice', 'Descrizione', 'Quantità']];
+    let dati = [['Codice', 'Descrizione', 'Quantità', 'Data/Ora']];
     let descrizioni = {};
     let codiceCorrente = "";
 
@@ -100,7 +100,9 @@
       const q = parseInt(inputQuantita.value);
       const d = inputDescrizione.value.trim();
       if (!isNaN(q) && d !== "") {
-        dati.push([codiceCorrente, d, q]);
+        const now = new Date();
+        const dataOra = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
+        dati.push([codiceCorrente, d, q, dataOra]);
         descrizioni[codiceCorrente] = d;
         saveData();
         updateOutput();
@@ -120,7 +122,7 @@
     function updateOutput() {
       output.innerHTML = '';
       for (let i = 1; i < dati.length; i++) {
-        output.innerHTML += `<p>${dati[i][0]} - ${dati[i][1]} - ${dati[i][2]} scatole</p>`;
+        output.innerHTML += `<p>${dati[i][0]} - ${dati[i][1]} - ${dati[i][2]} scatole - ${dati[i][3]}</p>`;
       }
     }
 
@@ -131,7 +133,7 @@
 
     function clearData() {
       if (confirm('Vuoi cancellare tutte le quantità?')) {
-        dati = [['Codice', 'Descrizione', 'Quantità']];
+        dati = [['Codice', 'Descrizione', 'Quantità', 'Data/Ora']];
         saveData();
         updateOutput();
       }
