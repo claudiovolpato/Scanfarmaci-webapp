@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <title>ScanFarmaci + Google Sheets</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+  <h2>Test WebApp con Google Sheets</h2>
+  <button onclick="caricaDescrizioni()">Carica descrizioni</button>
+  <button onclick="salvaDescrizione()">Salva esempio</button>
+  <pre id="output"></pre>
+
+  <script>
+    const scriptURL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec";
+    let descrizioni = {};
+
+    function caricaDescrizioni() {
+      fetch(scriptURL)
+        .then(res => res.json())
+        .then(data => {
+          descrizioni = data;
+          document.getElementById('output').innerText = JSON.stringify(descrizioni, null, 2);
+        })
+        .catch(err => alert('Errore nel caricamento: ' + err));
+    }
+
+    function salvaDescrizione() {
+      const codice = prompt("Codice a barre:");
+      const descrizione = prompt("Descrizione:");
+      if (!codice || !descrizione) return;
+      fetch(scriptURL, {
+        method: 'POST',
+        body: JSON.stringify({ codice, descrizione }),
+        headers: { 'Content-Type': 'application/json' }
+      })
+        .then(r => r.text())
+        .then(resp => {
+          alert('Risposta server: ' + resp);
+          caricaDescrizioni();
+        })
+        .catch(err => alert('Errore nel salvataggio: ' + err));
+    }
+  </script>
+</body>
+</html>
