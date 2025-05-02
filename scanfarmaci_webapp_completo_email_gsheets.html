@@ -1,0 +1,107 @@
+
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>ScanFarmaci WebApp</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    body { font-family: sans-serif; background: #f4f6f8; padding: 2em; text-align: center; }
+    video { width: 100%; max-width: 640px; display: none; border-radius: 12px; }
+    button { margin: 0.5em; padding: 0.75em 1.5em; font-size: 16px; border: none; border-radius: 8px; background: #0077cc; color: white; }
+    #output { margin-top: 1em; text-align: left; max-width: 640px; margin: auto; background: white; padding: 1em; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <h2>ScanFarmaci</h2>
+  <button onclick="startScan()">Scansiona articolo</button>
+  <button onclick="clearData()">Cancella quantità</button>
+  <button onclick="downloadExcel()">Scarica Excel</button>
+  <button onclick="inviaDati()">Invia scansioni</button>
+  <video id="preview" autoplay muted playsinline></video>
+  <div id="output"></div>
+
+  <script>
+    const scriptURL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec"; // Inserisci qui il tuo URL Apps Script
+    let dati = [['Codice', 'Descrizione', 'Quantità', 'Data/Ora']];
+    let descrizioni = {};
+    let codiceCorrente = "";
+
+    window.onload = () => {
+      const d = localStorage.getItem('datiScanFarmaci');
+      if (d) dati = JSON.parse(d);
+      fetch(scriptURL).then(r => r.json()).then(data => descrizioni = data).catch(() => {});
+      updateOutput();
+    };
+
+    async function startScan() {
+      if (!('BarcodeDetector' in window)) return alert('BarcodeDetector non supportato.');
+      const detector = new BarcodeDetector();
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      const video = document.getElementById('preview');
+      video.srcObject = stream;
+      await video.play();
+      video.style.display = 'block';
+
+      const interval = setInterval(async () => {
+        const barcodes = await detector.detect(video);
+        if (barcodes.length > 0) {
+          codiceCorrente = barcodes[0].rawValue;
+          stream.getTracks().forEach(t => t.stop());
+          video.style.display = 'none';
+          const desc = prompt("Descrizione:", descrizioni[codiceCorrente] || "");
+          const quant = parseInt(prompt("Quantità:", "1"));
+          if (!isNaN(quant) && desc !== null) {
+            const timestamp = new Date().toLocaleString();
+            dati.push([codiceCorrente, desc, quant, timestamp]);
+            descrizioni[codiceCorrente] = desc;
+            updateOutput();
+            saveData();
+            fetch(scriptURL, {
+              method: 'POST',
+              body: JSON.stringify({ codice: codiceCorrente, descrizione: desc }),
+              headers: { 'Content-Type': 'application/json' }
+            }).catch(console.error);
+          }
+          clearInterval(interval);
+        }
+      }, 500);
+    }
+
+    function updateOutput() {
+      document.getElementById('output').innerHTML = dati.slice(1).map(d => `<p>${d.join(" - ")}</p>`).join('');
+    }
+
+    function saveData() {
+      localStorage.setItem('datiScanFarmaci', JSON.stringify(dati));
+    }
+
+    function clearData() {
+      if (confirm("Vuoi cancellare tutte le quantità?")) {
+        dati = [['Codice', 'Descrizione', 'Quantità', 'Data/Ora']];
+        saveData();
+        updateOutput();
+      }
+    }
+
+    function downloadExcel() {
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(dati);
+      XLSX.utils.book_append_sheet(wb, ws, 'Medicinali');
+      XLSX.writeFile(wb, 'medicinali.xlsx');
+    }
+
+    function inviaDati() {
+      fetch(scriptURL, {
+        method: 'POST',
+        body: JSON.stringify({ inviaExcel: true, dati }),
+        headers: { 'Content-Type': 'application/json' }
+      })
+      .then(r => r.text())
+      .then(msg => alert("Dati inviati!
+" + msg))
+      .catch(err => alert("Errore invio: " + err));
+    }
+  </script>
+</body>
+</html>
