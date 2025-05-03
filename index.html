@@ -30,6 +30,7 @@
   <button onclick="clearData()">Cancella quantità</button>
   <button onclick="downloadExcel()">Scarica Excel</button>
   <button onclick="inviaDati()">Invia scansioni</button>
+  <button onclick="Test()">Test</button>
   <video id="preview" autoplay muted playsinline></video>
   <div id="output"></div>
 
@@ -92,8 +93,12 @@
         }
       }, 500);
     }
-
-    function mostraPromptQuantita(codice) {
+    function test()
+    {
+      mostraPromptQuantita(1001);
+    }
+    
+      function mostraPromptQuantita(codice) {
       promptCodice.innerText = `Codice: ${codice}`;
       inputDescrizione.value = descrizioni[codice] || "";
       inputQuantita.value = 1;
