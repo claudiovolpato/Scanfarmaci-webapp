@@ -57,13 +57,14 @@
     const inputDescrizione = document.getElementById('inputDescrizione');
     const inputQuantita = document.getElementById('inputQuantita');
 
-    const scriptURL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec";
+    const scriptURLCode = "https://script.google.com/macros/s/AKfycbyx4KT5aucC7UlLm1XmGNQIDK9VhYBx65iqgii2V4L5U2XQbu0Ai8tlxqRfoJBBBohD/exec";
+    const scriptURLScan = ""
     let dati = [['Codice', 'Descrizione', 'Quantità', 'Data/Ora']];
     let descrizioni = {};
     let codiceCorrente = "";
 
     window.onload = () => {
-      fetch(scriptURL)
+      fetch(scriptURLCode)
         .then(res => res.json())
         .then(data => { descrizioni = data; })
         .catch(err => alert('Errore nel caricamento descrizioni: ' + err));
