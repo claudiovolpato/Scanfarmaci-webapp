@@ -161,8 +161,7 @@
         headers: { 'Content-Type': 'application/json' }
       })
       .then(r => r.text())
-      .then(msg => alert("Dati inviati!
-" + msg))
+      .then(msg => alert("Dati inviati!" + msg))
       .catch(err => alert("Errore invio: " + err));
     }
   </script>
