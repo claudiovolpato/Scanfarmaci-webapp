@@ -25,7 +25,7 @@
   </style>
 </head>
 <body>
-  <h2>ScanFarmaci</h2>
+  <h2>ScanFarmaci1</h2>
   <button onclick="startScan()">Scansiona articolo</button>
   <button onclick="clearData()">Cancella quantità</button>
   <button onclick="downloadExcel()">Scarica Excel</button>
@@ -110,7 +110,7 @@
         descrizioni[codiceCorrente] = d;
         updateOutput();
         saveData();
-        fetch(scriptURL, {
+        fetch(scriptURLCode, {
           method: 'POST',
           body: JSON.stringify({ codice: codiceCorrente, descrizione: d }),
           headers: { 'Content-Type': 'application/json' }
